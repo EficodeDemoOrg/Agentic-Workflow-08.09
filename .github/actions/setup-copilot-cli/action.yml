@@ -1,0 +1,11 @@
+name: Setup Copilot CLI
+description: Set up Node.js and install the GitHub Copilot CLI globally. Callers must check out the repo first.
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js environment
+      uses: actions/setup-node@v7
+
+    - name: Install Copilot CLI
+      shell: bash
+      run: npm install -g @github/copilot

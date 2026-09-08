@@ -1,0 +1,41 @@
+name: Plan Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  require-plan:
+    # Defensive gating: only run for PRs opened by github-actions[bot]
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate PR body matches plan template
+        env:
+          # Treated as data only (never passed through eval/shell expansion) to avoid injection from PR-controlled content
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          missing=0
+          check() {
+            if ! printf '%s' "$PR_BODY" | grep -qF "$1"; then
+              echo "Missing required section/field: $1"
+              missing=1
+            fi
+          }
+          check "## Plan (required)"
+          check "**Goal:**"
+          check "**Scope (paths/files):**"
+          check "**Steps:**"
+          check "**Success criteria (verifiable):**"
+          check "**Risks + mitigations:**"
+          check "**Rollback / escalation plan:**"
+          check "## Evidence"
+          check "## Review checklist"
+          if [ "$missing" -eq 1 ]; then
+            echo "PR body does not match the required plan-template.md format."
+            exit 1
+          fi
+          echo "PR body matches the plan-template.md format."

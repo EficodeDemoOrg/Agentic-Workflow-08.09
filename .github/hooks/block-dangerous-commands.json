@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".github/hooks/scripts/block-dangerous-commands.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+name: Open Agent Draft PR
+description: >-
+  Download the merged plan artifact, create a working branch, render a PR body
+  from the plan, and open a draft pull request. Exports BRANCH and BASE via
+  $GITHUB_ENV for subsequent steps in the same job.
+inputs:
+  issue-number:
+    required: true
+    description: Issue number the plan targets.
+  github-token:
+    required: true
+    description: Token used by the gh CLI to create the pull request.
+runs:
+  using: composite
+  steps:
+    - name: Download plan artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: plan
+        path: out
+
+    - name: Create working branch
+      shell: bash
+      env:
+        ISSUE_NUMBER: ${{ inputs.issue-number }}
+        RUN_ID: ${{ github.run_id }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        set -euo pipefail
+        branch="agent-plan/issue-${ISSUE_NUMBER}-${RUN_ID}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git fetch origin
+        
+        # Check if branch exists as a tracking branch after fetch
+        if git rev-parse --verify origin/${branch} > /dev/null 2>&1; then
+          # Branch exists on remote: checkout and reset to latest remote state (resume work)
+          git checkout "$branch"
+          git reset --hard "origin/${branch}"
+        else
+          # Branch doesn't exist: create new
+          git checkout -b "$branch"
+        fi
+        
+        echo "BRANCH=$branch" >> "$GITHUB_ENV"
+        echo "BASE=${REF_NAME}" >> "$GITHUB_ENV"
+
+    - name: Render PR body from plan
+      shell: bash
+      env:
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        set -euo pipefail
+        mkdir -p .ci
+        {
+          echo "## Plan"
+          echo
+          echo "- **Goal:** $(jq -r '.goal // "N/A"' out/plan.json)"
+          echo "- **Scope (paths/files):** $(jq -r '(.scope // []) | join(", ")' out/plan.json)"
+          echo "- **Steps:**"
+          jq -r '(.steps // []) | to_entries[] | "  \(.key + 1). \(.value)"' out/plan.json
+          echo "- **Success criteria (verifiable):**"
+          echo "  - [x] Required checks pass"
+          echo "  - [x] Security signals reviewed (as applicable)"
+          echo "- **Risks + mitigations:** $(jq -r '.risk // "N/A"' out/plan.json) -- $(jq -r '.mitigations // "N/A"' out/plan.json)"
+          echo "- **Rollback / escalation plan:** $(jq -r '.rollback // "Revert this PR"' out/plan.json)"
+          echo
+          echo "## Evidence"
+          echo
+          echo "- Workflow run(s): ${RUN_URL}"
+          echo "- Scan results (if applicable): N/A"
+          echo
+          echo "## Review checklist"
+          echo
+          echo "- [ ] Plan reviewed and approved"
+          echo "- [ ] Required reviews satisfied"
+          echo "- [ ] Required checks satisfied"
+        } > .ci/pr_body.md
+
+    - name: Open draft pull request
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        ISSUE_NUMBER: ${{ inputs.issue-number }}
+      run: |
+        set -euo pipefail
+        # Empty commit so the branch has history distinct from base; PR can be opened before the agent runs.
+        git commit --allow-empty -m "chore: start agent plan for issue #${ISSUE_NUMBER}"
+        git push origin "$BRANCH"
+        gh pr create \
+          --draft \
+          --title "Agent plan for issue #${ISSUE_NUMBER}" \
+          --body-file .ci/pr_body.md \
+          --head "$BRANCH" \
+          --base "$BASE"

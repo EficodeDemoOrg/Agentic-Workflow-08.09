@@ -1,0 +1,69 @@
+name: Workshop Initialization
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  copilot-requests: write
+
+jobs:
+  set-up-repository:
+    if: github.event.repository.is_template == false && github.actor != 'github-actions[bot]' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Copilot CLI
+        uses: ./.github/actions/setup-copilot-cli
+
+      - name: Ensure Copilot workflow label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh label create "copilot:plan-and-implement" --color "1D76DB" --force
+
+      - name: Generate GitHub issues from requirements
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          copilot -s --allow-all-tools -p "Use the description-to-github-issues skill for src/DESCRIPTION.md, src/TECHNICAL_REQUIREMENTS.md, and src/FUNCTIONAL_REQUIREMENTS.md. Follow its procedure completely: inspect existing issues for duplicates, determine the repository from origin, verify GitHub authentication, then create the resulting actionable GitHub issues immediately. Do not modify application code or create labels."
+
+      - name: Remove template-only paths
+        id: prune
+        run: |
+          set -euo pipefail
+
+          changed=false
+          paths_to_remove=(
+            ".github/workflows/init.yml"
+          )
+
+          for path in "${paths_to_remove[@]}"; do
+            if [[ -e "$path" ]]; then
+              rm -rf "$path"
+              echo "Removed $path"
+              changed=true
+            fi
+          done
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - name: Rewrite history to one initial commit
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git commit -m "Setting up workshop state"
+          git push 

@@ -1,0 +1,240 @@
+name: Plan and Implement
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue-number:
+        type: number
+        required: true
+concurrency:
+  group: plan-implement-${{ github.event.issue.number || inputs.issue-number }}
+  cancel-in-progress: false
+permissions: {}
+
+jobs:
+  prepare:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == 'copilot:plan-and-implement'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+    timeout-minutes: 2
+    outputs:
+      issue_number: ${{ steps.issue.outputs.number }}
+    steps:
+      - name: Resolve issue number and body
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue-number }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          echo "number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+          gh issue view "$ISSUE_NUMBER" --json title,body -q '"# " + .title + "\n\n" + .body' > out/issue.md
+
+      - name: Upload issue artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue
+          path: out/issue.md
+
+  spec_analyzer:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      copilot-requests: write
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-copilot-cli
+      - uses: ./.github/actions/copilot-json-task
+        with:
+          issue-number: ${{ needs.prepare.outputs.issue_number }}
+          task: Generate an implementation plan
+          schema: "fields: goal, scope, steps, mitigations, rollback"
+          output-file: out/spec.json
+          artifact-name: spec
+          agent: spec_analyzer
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  risk_reviewer:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      copilot-requests: write
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-copilot-cli
+      - uses: ./.github/actions/copilot-json-task
+        with:
+          issue-number: ${{ needs.prepare.outputs.issue_number }}
+          task: Assess the implementation risk
+          schema: "one field: risk (one of low, medium, high)"
+          output-file: out/risk.json
+          artifact-name: risk
+          agent: risk_reviewer
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  plan_merger:
+    needs: [spec_analyzer, risk_reviewer] # <--- FANS IN both
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      risk: ${{ steps.merge.outputs.risk }}
+    timeout-minutes: 5
+    steps:
+      - name: Download spec artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: spec
+          path: out
+
+      - name: Download risk artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: risk
+          path: out
+
+      - name: Merge spec and risk into plan
+        id: merge
+        run: |
+          set -euo pipefail
+          jq -s '.[0] * {risk: .[1].risk}' out/spec.json out/risk.json > out/plan.json
+          # Normalize risk: lowercase, strip whitespace, allowlist {low,medium,high}; default to 'high' (safer).
+          raw_risk=$(jq -r '.risk // ""' out/plan.json | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+          case "$raw_risk" in
+            low|medium|high) risk="$raw_risk" ;;
+            *) risk="high" ;;
+          esac
+          jq --arg r "$risk" '.risk = $r' out/plan.json > out/plan.json.tmp && mv out/plan.json.tmp out/plan.json
+          echo "risk=$risk" >> "$GITHUB_OUTPUT"
+
+      - name: Write plan to job summary
+        env:
+          ISSUE_NUMBER: ${{ needs.prepare.outputs.issue_number }}
+        run: |
+          set -euo pipefail
+          risk=$(jq -r '.risk // "unknown"' out/plan.json)
+          case "$risk" in
+            low) badge="🟢 low" ;;
+            medium) badge="🟡 medium" ;;
+            high) badge="🔴 high" ;;
+            *) badge="⚪ $risk" ;;
+          esac
+
+          {
+            echo "# 📋 Implementation Plan for Issue #${ISSUE_NUMBER}"
+            echo
+            echo "**Risk:** ${badge}"
+            echo
+            echo "## 🎯 Goal"
+            echo
+            jq -r '.goal // "_not provided_"' out/plan.json
+            echo
+            echo "## 🔭 Scope"
+            echo
+            jq -r '
+              (.scope // empty) as $s
+              | if ($s | type) == "array" then ($s[] | "- \(.)")
+                elif ($s | type) == "string" then $s
+                else "_not provided_" end
+            ' out/plan.json
+            echo
+            echo "## 🛠️ Steps"
+            echo
+            jq -r '
+              (.steps // []) as $steps
+              | if ($steps | type) == "array" and ($steps | length) > 0
+                then ($steps | to_entries[] | "\(.key + 1). \(if (.value | type) == "object" then (.value | tostring) else .value end)")
+                else "_not provided_" end
+            ' out/plan.json
+            echo
+            echo "## 🛡️ Mitigations"
+            echo
+            jq -r '
+              (.mitigations // empty) as $m
+              | if ($m | type) == "array" then ($m[] | "- \(.)")
+                elif ($m | type) == "string" then $m
+                else "_not provided_" end
+            ' out/plan.json
+            echo
+            echo "## ⏪ Rollback"
+            echo
+            jq -r '
+              (.rollback // empty) as $r
+              | if ($r | type) == "array" then ($r[] | "- \(.)")
+                elif ($r | type) == "string" then $r
+                else "_not provided_" end
+            ' out/plan.json
+            echo
+            echo "<details><summary>Raw plan JSON</summary>"
+            echo
+            echo '```json'
+            jq . out/plan.json
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: plan
+          path: out/plan.json
+
+  implement:
+    needs: plan_merger
+    runs-on: ubuntu-latest
+    environment: approval-required
+    if: ${{ needs.plan_merger.outputs.risk != 'low' }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      copilot-requests: write
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-copilot-cli
+      - uses: ./.github/actions/open-agent-pr
+        with:
+          issue-number: ${{ github.event.issue.number || inputs.issue-number }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/implement-agent-plan
+        with:
+          issue-number: ${{ github.event.issue.number || inputs.issue-number }}
+          commit-message: "Apply agent implementation for issue #${{ github.event.issue.number || inputs.issue-number }}"
+          agent: implementer
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  implement_auto:
+    needs: plan_merger
+    runs-on: ubuntu-latest
+    if: ${{ needs.plan_merger.outputs.risk == 'low' }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      copilot-requests: write
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-copilot-cli
+      - uses: ./.github/actions/open-agent-pr
+        with:
+          issue-number: ${{ github.event.issue.number || inputs.issue-number }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/implement-agent-plan
+        with:
+          issue-number: ${{ github.event.issue.number || inputs.issue-number }}
+          commit-message: "Apply agent implementation for issue #${{ github.event.issue.number || inputs.issue-number }}"
+          agent: implementer
+          github-token: ${{ secrets.GITHUB_TOKEN }}

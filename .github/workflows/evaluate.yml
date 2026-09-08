@@ -1,0 +1,189 @@
+name: Evaluate Agents & Skills
+
+on:
+  workflow_dispatch:
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      copilot-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: evaluator/package-lock.json
+
+      - name: Install dependencies
+        working-directory: evaluator
+        run: npm ci
+
+      - name: Run evaluation
+        id: run_eval
+        working-directory: evaluator
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          npx tsx cli.ts evaluate \
+            --directory "${{ github.workspace }}" \
+            --json \
+            2>eval_errors.txt | tee eval_results.jsonl
+          echo "done"
+
+      - name: Annotate results
+        if: always()
+        working-directory: evaluator
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          if [ ! -f eval_results.jsonl ]; then
+            echo "No results file found."
+            exit 0
+          fi
+
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+
+            file=$(echo "$line" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ try { const o=JSON.parse(d); process.stdout.write(o.fileName||''); } catch(e){} });")
+            score=$(echo "$line" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ try { const o=JSON.parse(d); process.stdout.write(String(o.score??'')); } catch(e){} });")
+            reasoning=$(echo "$line" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ try { const o=JSON.parse(d); process.stdout.write(o.reasoning||''); } catch(e){} });")
+
+            [ -z "$file" ] && continue
+
+            deep_link=$(FILE_NAME="$file" FEEDBACK="$reasoning" node -e '
+              const appUrl = new URL("ghapp://session/new");
+              appUrl.searchParams.set("repo", `${process.env.REPO_OWNER}/${process.env.REPO_NAME}`);
+              appUrl.searchParams.set("mode", "plan");
+              appUrl.searchParams.set("prompt", `create a plan for improving #${process.env.FILE_NAME} based on the feedback <feedback>${process.env.FEEDBACK}</feedback>`);
+              const launcherUrl = new URL("https://github.com/copilot/app/launch");
+              launcherUrl.searchParams.set("open", appUrl.toString());
+              process.stdout.write(launcherUrl.toString());
+            ')
+            annotation_link=${deep_link//'%'/'%25'}
+
+            # Determine severity: score < 5 = warning, otherwise notice
+            if [ "$score" -lt 5 ] 2>/dev/null; then
+              level="warning"
+            else
+              level="notice"
+            fi
+
+            echo "::${level} file=${file}::Score: ${score}/10 — ${reasoning} Open in GitHub Copilot: ${annotation_link}"
+          done < eval_results.jsonl
+
+      - name: Report evaluation errors
+        if: always()
+        working-directory: evaluator
+        run: |
+          if [ -s eval_errors.txt ]; then
+            echo "::warning::Some evaluations encountered errors:"
+            while IFS= read -r line; do
+              echo "::warning::${line}"
+            done < eval_errors.txt
+          fi
+
+      - name: Summary
+        if: always()
+        working-directory: evaluator
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          if [ ! -f eval_results.jsonl ]; then
+            echo "No evaluation results." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Compute average score
+          avg=$(node -e "
+            const fs = require('fs');
+            const lines = fs.readFileSync('eval_results.jsonl','utf8').split('\n').filter(Boolean);
+            const scores = lines.map(l => { try { return JSON.parse(l).score || 0; } catch { return 0; } });
+            const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+            process.stdout.write((Math.round(avg * 10) / 10).toString());
+          ")
+
+          score_emoji() {
+            local s=$1
+            if [ "$s" -le 4 ] 2>/dev/null; then echo "🔴"
+            elif [ "$s" -le 6 ] 2>/dev/null; then echo "🟡"
+            elif [ "$s" -le 8 ] 2>/dev/null; then echo "🟢"
+            else echo "✅"
+            fi
+          }
+
+          echo "## 📊 Evaluation Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Score | Reasoning | Action |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            file=$(echo "$line" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ try { const o=JSON.parse(d); process.stdout.write(o.fileName||''); } catch(e){} });")
+            score=$(echo "$line" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ try { const o=JSON.parse(d); process.stdout.write(String(o.score??'')); } catch(e){} });")
+            reasoning=$(echo "$line" | node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ try { const o=JSON.parse(d); process.stdout.write(o.reasoning||''); } catch(e){} });")
+            [ -z "$file" ] && continue
+            deep_link=$(FILE_NAME="$file" FEEDBACK="$reasoning" node -e '
+              const appUrl = new URL("ghapp://session/new");
+              appUrl.searchParams.set("repo", `${process.env.REPO_OWNER}/${process.env.REPO_NAME}`);
+              appUrl.searchParams.set("mode", "plan");
+              appUrl.searchParams.set("prompt", `create a plan for improving #${process.env.FILE_NAME} based on the feedback <feedback>${process.env.FEEDBACK}</feedback>`);
+              const launcherUrl = new URL("https://github.com/copilot/app/launch");
+              launcherUrl.searchParams.set("open", appUrl.toString());
+              process.stdout.write(launcherUrl.toString());
+            ')
+            emoji=$(score_emoji "$score")
+            echo "| \`${file}\` | ${emoji} **${score}/10** | ${reasoning} | [Open in GitHub Copilot](${deep_link}) |" >> "$GITHUB_STEP_SUMMARY"
+          done < eval_results.jsonl
+
+          avg_emoji=$(score_emoji "$(echo "$avg" | cut -d. -f1)")
+          echo "|------|-------|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Average** | ${avg_emoji} **${avg}/10** | | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "![Evaluation Badge](https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/eval-badge.svg)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate evaluation badge
+        if: always()
+        working-directory: evaluator
+        run: |
+          if [ ! -f eval_results.jsonl ]; then
+            echo "No results to generate badge from."
+            exit 0
+          fi
+          npx tsx cli.ts badge \
+            --input eval_results.jsonl \
+            --output "${{ github.workspace }}/eval-badge.svg" \
+            --date "$(date -u +%Y-%m-%d)"
+
+      - name: Upload badge artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-badge
+          path: eval-badge.svg
+          if-no-files-found: ignore
+
+      - name: Commit evaluation badge
+        if: always()
+        run: |
+          if [ ! -f "${{ github.workspace }}/eval-badge.svg" ]; then
+            echo "No badge file to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add eval-badge.svg
+          if git diff --cached --quiet; then
+            echo "No changes to badge."
+          else
+            git commit -m "chore: update evaluation badge [skip ci]"
+            git push
+          fi

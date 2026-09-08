@@ -1,0 +1,71 @@
+name: Implement Agent Plan
+description: >-
+  Run the Copilot implementer agent to apply the plan, commit the resulting
+  changes to the working branch, and mark the draft pull request ready for
+  review. Reads BRANCH from the job environment (set by open-agent-pr).
+inputs:
+  issue-number:
+    required: true
+    description: Issue number the plan targets.
+  commit-message:
+    required: true
+    description: Commit message used for the change produced by the implementer.
+  agent:
+    required: false
+    default: ""
+    description: >-
+      Optional Copilot agent name (see .github/agents/*.agent.md) used to
+      apply the plan. When empty, no --agent flag is passed.
+  github-token:
+    required: true
+    description: Token used by the gh CLI to mark the PR ready.
+runs:
+  using: composite
+  steps:
+    - name: Apply agent plan
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        AGENT: ${{ inputs.agent }}
+      run: |
+        agent_args=()
+        if [ -n "${AGENT}" ]; then
+          agent_args=(--agent "${AGENT}")
+        fi
+        copilot -p "You are working on git branch ${BRANCH}. Apply the plan from out/plan.json to this branch. Do not modify files under out/." -s --allow-all-tools "${agent_args[@]}"
+
+    - name: Commit changes and mark PR ready
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        set -euo pipefail
+        # Do not commit downloaded plan artifacts
+        rm -rf out .ci
+        git add -A
+        
+        # Check for changes: either staged changes OR commits on branch not in base
+        has_staged_changes=false
+        has_commits_on_branch=false
+        
+        if ! git diff --cached --quiet; then
+          has_staged_changes=true
+        fi
+        
+        # Check if there are commits on this branch not in the base branch
+        if git log --oneline "${BASE}..HEAD" 2>/dev/null | grep -q .; then
+          has_commits_on_branch=true
+        fi
+        
+        if [ "$has_staged_changes" = true ] || [ "$has_commits_on_branch" = true ]; then
+          # Commit staged changes if any exist
+          if [ "$has_staged_changes" = true ]; then
+            git commit -m "${COMMIT_MESSAGE}"
+          fi
+          git push origin "$BRANCH"
+          gh pr ready "$BRANCH"
+        else
+          echo "No changes produced by the agent; leaving PR as draft."
+          exit 1
+        fi

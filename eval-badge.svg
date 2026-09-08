@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="560" role="img" aria-label="Agent &amp; Skill Evaluation Results">
+  <title>Agent &amp; Skill Evaluation Results — 2026-09-08</title>
+  <defs>
+    <linearGradient id="headerGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#1a2236"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+    <clipPath id="rounded">
+      <rect width="620" height="560" rx="10"/>
+    </clipPath>
+  </defs>
+
+  <!-- outer rounded clip -->
+  <g clip-path="url(#rounded)">
+
+  <!-- header -->
+  <rect x="0" y="0" width="620" height="56" fill="url(#headerGrad)" />
+  <text x="20" y="24" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#f0f6fc">Agent &amp; Skill Evaluation</text>
+  <text x="20" y="42" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="11" fill="#8b949e">2026-09-08</text>
+
+  <!-- column headers -->
+  <text x="320" y="42" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="10" fill="#8b949e">SCORE</text>
+  <text x="520" y="42" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="10" fill="#8b949e" text-anchor="middle">RATING</text>
+
+
+  <!-- row 0 -->
+  <rect x="0" y="56" width="620" height="38" fill="#1e2433" />
+  <!-- name -->
+  <text x="20" y="80" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/summarizer.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="66" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="66" width="76" height="18" rx="4" fill="#e05252" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="80" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e05252" text-anchor="middle">4/10</text>
+
+  <!-- row 1 -->
+  <rect x="0" y="94" width="620" height="38" fill="#232a3a" />
+  <!-- name -->
+  <text x="20" y="118" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/spec_analyzer.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="104" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="104" width="114" height="18" rx="4" fill="#e09a25" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="118" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e09a25" text-anchor="middle">6/10</text>
+
+  <!-- row 2 -->
+  <rect x="0" y="132" width="620" height="38" fill="#1e2433" />
+  <!-- name -->
+  <text x="20" y="156" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/risk_reviewer.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="142" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="142" width="133" height="18" rx="4" fill="#2b9e7a" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="156" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#2b9e7a" text-anchor="middle">7/10</text>
+
+  <!-- row 3 -->
+  <rect x="0" y="170" width="620" height="38" fill="#232a3a" />
+  <!-- name -->
+  <text x="20" y="194" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/reporesearcher.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="180" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="180" width="76" height="18" rx="4" fill="#e05252" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="194" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e05252" text-anchor="middle">4/10</text>
+
+  <!-- row 4 -->
+  <rect x="0" y="208" width="620" height="38" fill="#1e2433" />
+  <!-- name -->
+  <text x="20" y="232" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/orchestrator.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="218" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="218" width="76" height="18" rx="4" fill="#e05252" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="232" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e05252" text-anchor="middle">4/10</text>
+
+  <!-- row 5 -->
+  <rect x="0" y="246" width="620" height="38" fill="#232a3a" />
+  <!-- name -->
+  <text x="20" y="270" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/implementer.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="256" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="256" width="152" height="18" rx="4" fill="#2b9e7a" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="270" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#2b9e7a" text-anchor="middle">8/10</text>
+
+  <!-- row 6 -->
+  <rect x="0" y="284" width="620" height="38" fill="#1e2433" />
+  <!-- name -->
+  <text x="20" y="308" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/evaluator.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="294" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="294" width="133" height="18" rx="4" fill="#2b9e7a" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="308" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#2b9e7a" text-anchor="middle">7/10</text>
+
+  <!-- row 7 -->
+  <rect x="0" y="322" width="620" height="38" fill="#232a3a" />
+  <!-- name -->
+  <text x="20" y="346" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/csharper.agent.md</text>
+  <!-- bar bg -->
+  <rect x="320" y="332" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="332" width="76" height="18" rx="4" fill="#e05252" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="346" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e05252" text-anchor="middle">4/10</text>
+
+  <!-- row 8 -->
+  <rect x="0" y="360" width="620" height="38" fill="#1e2433" />
+  <!-- name -->
+  <text x="20" y="384" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/agents/broken-reviewer.agent.…</text>
+  <!-- bar bg -->
+  <rect x="320" y="370" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="370" width="38" height="18" rx="4" fill="#e05252" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="384" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e05252" text-anchor="middle">2/10</text>
+
+  <!-- row 9 -->
+  <rect x="0" y="398" width="620" height="38" fill="#232a3a" />
+  <!-- name -->
+  <text x="20" y="422" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.agents/skills/generic-skill-name/SKI…</text>
+  <!-- bar bg -->
+  <rect x="320" y="408" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="408" width="57" height="18" rx="4" fill="#e05252" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="422" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e05252" text-anchor="middle">3/10</text>
+
+  <!-- row 10 -->
+  <rect x="0" y="436" width="620" height="38" fill="#1e2433" />
+  <!-- name -->
+  <text x="20" y="460" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.agents/skills/description-to-github-…</text>
+  <!-- bar bg -->
+  <rect x="320" y="446" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="446" width="152" height="18" rx="4" fill="#2b9e7a" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="460" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#2b9e7a" text-anchor="middle">8/10</text>
+
+  <!-- row 11 -->
+  <rect x="0" y="474" width="620" height="38" fill="#232a3a" />
+  <!-- name -->
+  <text x="20" y="498" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#c9d1d9">.github/skills/broken-greeting/SKILL.…</text>
+  <!-- bar bg -->
+  <rect x="320" y="484" width="190" height="18" rx="4" fill="#0d1117" />
+  <!-- bar fill -->
+  <rect x="320" y="484" width="57" height="18" rx="4" fill="#e05252" opacity="0.85" />
+  <!-- score label -->
+  <text x="520" y="498" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13" font-weight="bold" fill="#e05252" text-anchor="middle">3/10</text>
+
+  <!-- footer / average -->
+  <rect x="0" y="512" width="620" height="48" fill="#161b22" />
+  <line x1="0" y1="512" x2="620" y2="512" stroke="#30363d" stroke-width="1"/>
+  <text x="20" y="541" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f0f6fc">Average (12 items)</text>
+  <!-- avg bar bg -->
+  <rect x="320" y="524" width="190" height="24" rx="4" fill="#0d1117" />
+  <!-- avg bar fill -->
+  <rect x="320" y="524" width="95" height="24" rx="4" fill="#e09a25" opacity="0.9" />
+  <!-- avg label -->
+  <text x="520" y="541" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="14" font-weight="bold" fill="#e09a25" text-anchor="middle">5/10</text>
+
+  </g>
+
+  <!-- border -->
+  <rect x="0.5" y="0.5" width="619" height="559" rx="9.5" fill="none" stroke="#30363d" stroke-width="1"/>
+</svg>

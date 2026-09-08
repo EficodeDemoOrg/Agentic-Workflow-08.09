@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Glob|Grep|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".github/hooks/scripts/restrict-exercises.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
